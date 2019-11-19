@@ -1,9 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    tools:context=".MapsActivity">
 <fragment xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/map"
     android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="500dp"
     tools:context=".MapsActivity" />
+
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/temperature"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Temperature"
+        android:textColor="#000000"
+        android:textSize="21sp" />
+
+</LinearLayout>
+
+    <TextView
+        android:id="@+id/city"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="City"
+        android:textColor="#000000"
+        android:textSize="21sp" />
+
+    <TextView
+        android:id="@+id/latitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Latitude"
+        android:textColor="#000000"
+        android:textSize="21sp" />
+
+    <TextView
+        android:id="@+id/longitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Longitude"
+        android:textColor="#000000"
+        android:textSize="21sp" />
+</LinearLayout>
+
