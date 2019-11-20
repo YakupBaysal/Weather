@@ -7,6 +7,9 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -16,6 +19,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -43,6 +47,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationManager locationManager;
     LocationListener locationListener;
     TextView temperature,city,latitude,longitude;
+    ImageView weatherImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +60,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         city = (TextView)findViewById(R.id.city);
         latitude = (TextView)findViewById(R.id.latitude);
         longitude = (TextView)findViewById(R.id.longitude);
+        weatherImage = findViewById(R.id.weatherImage);
+
 
         mapFragment.getMapAsync(this);
     }
@@ -144,6 +151,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapLongClick(LatLng latLng) {
+        mMap.clear();
+
         Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
         String address ="";
         try {
@@ -156,6 +165,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        if (address.matches("")) {
+            address = "No Address";
+        }
+
+        mMap.addMarker(new MarkerOptions().position(latLng).title(address));
+
     }
 
 
@@ -207,14 +223,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 JSONObject weatherJSONObject = weatherArray.getJSONObject(0);
                 String weather = weatherJSONObject.getString("main");
                 String name = "";
-                city.setText("Şehir : " + cityName);
+                city.setText("Konum : " + cityName);
                 temperature.setText("Sıcaklık : " + mainObject.getString("temp"));
                 latitude.setText("Enlem : " + coord.getString("lat"));
                 longitude.setText("Boylam : " + coord.getString("lon"));
+
+                if (weatherJSONObject.getJSONObject(name).toString() == "Clear"){
+
+                    weatherImage.setImageResource(R.drawable.clear);
+                }
+
+                if (weatherJSONObject.getJSONObject(name).toString() == "Mist"){
+
+                    weatherImage.setImageResource(R.drawable.mist);
+                }
+
+                if (weatherJSONObject.getJSONObject(name).toString() == "Clouds"){
+
+                    weatherImage.setImageResource(R.drawable.clouds);
+                }
+
+                if (weatherJSONObject.getJSONObject(name).toString() == "Rain"){
+
+                    weatherImage.setImageResource(R.drawable.rain);
+                }
+
 
             }catch (Exception e){
 
             }
         }
+
+
     }
 }
