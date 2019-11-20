@@ -32,7 +32,7 @@
         <activity
             android:name=".MapsActivity"
             android:label="Weather"
-            android:screenOrientation="userPortrait">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

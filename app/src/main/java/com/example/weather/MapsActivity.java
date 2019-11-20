@@ -7,9 +7,6 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -18,13 +15,11 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
@@ -49,6 +44,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     TextView temperature,city,latitude,longitude;
     ImageView weatherImage;
 
+    enum weatherConditions{
+        Clouds,
+        Mist,
+        Rain,
+        Clear
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +62,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         city = (TextView)findViewById(R.id.city);
         latitude = (TextView)findViewById(R.id.latitude);
         longitude = (TextView)findViewById(R.id.longitude);
-        weatherImage = findViewById(R.id.weatherImage);
+        weatherImage = (ImageView) findViewById(R.id.weatherImage);
 
 
         mapFragment.getMapAsync(this);
@@ -77,8 +79,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
            @Override
            public void onLocationChanged(Location location) {
-
-
 
            }
 
@@ -104,30 +104,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     requestPermissions(new String[] {Manifest.permission.ACCESS_FINE_LOCATION},1);
                 }
                 else{
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,100,locationListener);
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,500,10,locationListener);
 
                     Location lastLocation = locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER);
                     System.out.println("lastLocation: " +lastLocation);
                     userLastLocation = new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude());
-                    mMap.addMarker(new MarkerOptions().title("Your Location").position(userLastLocation));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLastLocation,15));
+                    mMap.addMarker(new MarkerOptions().title("Your Location: " +userLastLocation).position(userLastLocation));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLastLocation,10));
 
                 }
             }
             else{
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,100,locationListener);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,500,10,locationListener);
                 Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 System.out.println("lastLocation: " + lastLocation);
                 userLastLocation = new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude());
-                mMap.addMarker(new MarkerOptions().title("Your Location").position(userLastLocation));
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLastLocation,15));
+                mMap.addMarker(new MarkerOptions().title("Your Location: " +userLastLocation).position(userLastLocation));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLastLocation,10));
             }
-            DownloadData downloadData = new DownloadData();
+            GetWeatherData getWeatherData = new GetWeatherData();
             try{
                 String url = "";
-                downloadData.execute(userLastLocation);
-            }catch (Exception e)
-            {
+                getWeatherData.execute(userLastLocation);
+
+            }catch (Exception e) {
 
             }
 
@@ -141,7 +141,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (grantResults.length > 0){
             if (requestCode == 1){
                 if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,100,locationListener);
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,500,10,locationListener);
                 }
             }
         }
@@ -170,16 +170,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             address = "No Address";
         }
 
-        mMap.addMarker(new MarkerOptions().position(latLng).title(address));
+        GetWeatherData getWeatherData = new GetWeatherData();
+        try{
+            String url = "";
+            getWeatherData.execute(latLng);
+        }catch (Exception e)
+        {
+
+        }
+
+        mMap.addMarker(new MarkerOptions().position(latLng).title(address+" Your Location: " +latLng));
 
     }
 
-
-    private class DownloadData extends AsyncTask<LatLng,Void,String>{
+    public class GetWeatherData extends AsyncTask<LatLng,Void,String> {
 
         @Override
         protected String doInBackground(LatLng... latLngs) {
-            //http://api.openweathermap.org/data/2.5/weather?lat=51.509865&lon=-0.118092&APPID=f0dbaf60b464c65e210c0b6f609fa79f
             String result = "";
             URL url;
             HttpURLConnection httpURLConnection;
@@ -196,7 +203,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     char character = (char) data;
                     result += character;
-
                     data = inputStreamReader.read();
                 }
                 return result;
@@ -211,10 +217,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             super.onPostExecute(s);
 
             try{
-                //Rain  yağmur
-                //Fog  sis
-                //Clouds bulutlu
-                //Clear açık
+                WeatherApiResponse weatherApiResponse = new WeatherApiResponse();
                 JSONObject jsonObject = new JSONObject(s);
                 JSONObject coord = jsonObject.getJSONObject("coord");
                 JSONObject mainObject = jsonObject.getJSONObject("main");
@@ -223,37 +226,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 JSONObject weatherJSONObject = weatherArray.getJSONObject(0);
                 String weather = weatherJSONObject.getString("main");
                 String name = "";
+
                 city.setText("Konum : " + cityName);
                 temperature.setText("Sıcaklık : " + mainObject.getString("temp"));
                 latitude.setText("Enlem : " + coord.getString("lat"));
                 longitude.setText("Boylam : " + coord.getString("lon"));
 
-                if (weatherJSONObject.getJSONObject(name).toString() == "Clear"){
 
-                    weatherImage.setImageResource(R.drawable.clear);
-                }
-
-                if (weatherJSONObject.getJSONObject(name).toString() == "Mist"){
-
-                    weatherImage.setImageResource(R.drawable.mist);
-                }
-
-                if (weatherJSONObject.getJSONObject(name).toString() == "Clouds"){
-
+                if (weather.equalsIgnoreCase(weatherConditions.Clouds.toString()))
                     weatherImage.setImageResource(R.drawable.clouds);
-                }
-
-                if (weatherJSONObject.getJSONObject(name).toString() == "Rain"){
-
+                else if (weather.equalsIgnoreCase(weatherConditions.Rain.toString()))
                     weatherImage.setImageResource(R.drawable.rain);
-                }
+                else if (weather.equalsIgnoreCase(weatherConditions.Mist.toString()))
+                    weatherImage.setImageResource(R.drawable.mist);
+                else if (weather.equalsIgnoreCase(weatherConditions.Clear.toString()))
+                    weatherImage.setImageResource(R.drawable.clear);
 
 
             }catch (Exception e){
 
             }
         }
-
-
     }
+
 }

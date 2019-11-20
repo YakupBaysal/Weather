@@ -75,6 +75,6 @@
         android:layout_marginVertical="10dp"
         android:gravity="center"
         android:src="@drawable/clear"
-        android:background="#FF000000"/>
+        />
 </LinearLayout>
 
