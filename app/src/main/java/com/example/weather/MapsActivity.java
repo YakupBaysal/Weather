@@ -26,6 +26,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -43,6 +44,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationListener locationListener;
     TextView temperature,city,latitude,longitude;
     ImageView weatherImage;
+    String cityName = "";
 
     enum weatherConditions{
         Clouds,
@@ -67,8 +69,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mapFragment.getMapAsync(this);
     }
-
-
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -122,14 +122,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.addMarker(new MarkerOptions().title("Your Location: " +userLastLocation).position(userLastLocation));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLastLocation,10));
             }
+        GetCityData getCityData = new GetCityData();
+        try{
+            getCityData.execute(userLastLocation);
+        }catch (Exception e) {
+        }
+
             GetWeatherData getWeatherData = new GetWeatherData();
             try{
-                String url = "";
                 getWeatherData.execute(userLastLocation);
 
             }catch (Exception e) {
 
             }
+
+
 
             mMap.setOnMapLongClickListener(this);
 
@@ -170,6 +177,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             address = "No Address";
         }
 
+
+        GetCityData getCityData = new GetCityData();
+        try{
+            getCityData.execute(latLng);
+        }catch (Exception e) {
+        }
+        
         GetWeatherData getWeatherData = new GetWeatherData();
         try{
             String url = "";
@@ -178,6 +192,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         {
 
         }
+
+
 
         mMap.addMarker(new MarkerOptions().position(latLng).title(address+" Your Location: " +latLng));
 
@@ -217,30 +233,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             super.onPostExecute(s);
 
             try{
-                WeatherApiResponse weatherApiResponse = new WeatherApiResponse();
+
                 JSONObject jsonObject = new JSONObject(s);
-                JSONObject coord = jsonObject.getJSONObject("coord");
-                JSONObject mainObject = jsonObject.getJSONObject("main");
-                String cityName = jsonObject.getString("name");
-                JSONArray weatherArray = jsonObject.getJSONArray("weather");
-                JSONObject weatherJSONObject = weatherArray.getJSONObject(0);
-                String weather = weatherJSONObject.getString("main");
-                String name = "";
-
-                city.setText("Konum : " + cityName);
-                temperature.setText("Sıcaklık : " + mainObject.getString("temp"));
-                latitude.setText("Enlem : " + coord.getString("lat"));
-                longitude.setText("Boylam : " + coord.getString("lon"));
-
-
-                if (weather.equalsIgnoreCase(weatherConditions.Clouds.toString()))
-                    weatherImage.setImageResource(R.drawable.clouds);
-                else if (weather.equalsIgnoreCase(weatherConditions.Rain.toString()))
-                    weatherImage.setImageResource(R.drawable.rain);
-                else if (weather.equalsIgnoreCase(weatherConditions.Mist.toString()))
-                    weatherImage.setImageResource(R.drawable.mist);
-                else if (weather.equalsIgnoreCase(weatherConditions.Clear.toString()))
-                    weatherImage.setImageResource(R.drawable.clear);
+                setParameters(jsonObject);
 
 
             }catch (Exception e){
@@ -248,5 +243,94 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
+
+    public class GetCityData extends AsyncTask<LatLng,Void,String> {
+
+        @Override
+        protected String doInBackground(LatLng... latLngs) {
+            String result = "";
+            URL url;
+            HttpURLConnection httpURLConnection;
+
+            try{
+                url = new URL("http://www.mapquestapi.com/geocoding/v1/reverse?key=xALPjQGyvBKtMOrLb65WijUmqJ20qGm9&location="+latLngs[0].latitude+","+latLngs[0].longitude+"&includeRoadMetadata=true&includeNearestIntersection=true");
+                httpURLConnection = (HttpURLConnection) url.openConnection();
+                InputStream inputStream = httpURLConnection.getInputStream();
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+
+                int data = inputStream.read();
+
+                while (data > 0)
+                {
+                    char character = (char) data;
+                    result += character;
+                    data = inputStreamReader.read();
+                }
+                return result;
+
+            }catch (Exception e){
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+
+            try{
+                JSONObject jsonObject = new JSONObject(s);
+                getCityName(jsonObject);
+
+            }catch (Exception e){
+
+            }
+        }
+    }
+    public void getCityName(JSONObject jsonObject)
+    {
+        try {
+            JSONArray results = jsonObject.getJSONArray("results");
+            JSONObject locations = results.getJSONObject(0);
+            JSONArray address = locations.getJSONArray("locations");
+            JSONObject adminArea3 = address.getJSONObject(0);
+            cityName = adminArea3.getString("adminArea3");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void setParameters(JSONObject jsonObject){
+        try{
+            JSONObject coord = jsonObject.getJSONObject("coord");
+            JSONObject mainObject = jsonObject.getJSONObject("main");
+            JSONArray weatherArray = jsonObject.getJSONArray("weather");
+            JSONObject weatherJSONObject = weatherArray.getJSONObject(0);
+
+            String weather = weatherJSONObject.getString("main");
+
+            city.setText("Konum : " + cityName);
+            temperature.setText("Sıcaklık : " + mainObject.getString("temp"));
+            latitude.setText("Enlem : " + coord.getString("lat"));
+            longitude.setText("Boylam : " + coord.getString("lon"));
+
+            getWeatherImage(weather);
+        }catch (Exception e){
+
+        }
+    }
+
+    public void getWeatherImage(String weather){
+        if (weather.equalsIgnoreCase(weatherConditions.Clouds.toString()))
+            weatherImage.setImageResource(R.drawable.clouds);
+        else if (weather.equalsIgnoreCase(weatherConditions.Rain.toString()))
+            weatherImage.setImageResource(R.drawable.rain);
+        else if (weather.equalsIgnoreCase(weatherConditions.Mist.toString()))
+            weatherImage.setImageResource(R.drawable.mist);
+        else if (weather.equalsIgnoreCase(weatherConditions.Clear.toString()))
+            weatherImage.setImageResource(R.drawable.clear);
+    }
+
 
 }
